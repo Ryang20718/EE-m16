@@ -1,0 +1,376 @@
+//--------------------------------------------------------------------
+//		Timescale
+//		Means that if you do #1 in the initial block of your
+//		testbench, time is advanced by 1ns instead of 1ps
+//--------------------------------------------------------------------
+`timescale 1ns / 1ps
+`define HCYC 100
+`define CYC 200
+//`define STRLEN 32
+//`define STR "abcdefghijklmnopqrstuvwxyz.,?   "
+`define STRLEN 28
+`define STR "able was i? ere, i saw elba."
+
+//--------------------------------------------------------------------
+//		Design Assign #3, Testbench.
+//--------------------------------------------------------------------
+//
+// Motor Model
+// A pseudo model of the motor behavior
+// **Do not modify**
+//
+module motor(count, err, motor_drv, drv_clk, reset);
+   	output [7:0]    count;
+   	output 	err;
+   	input [3:0] 	motor_drv;
+   	input 	drv_clk, reset;
+
+   	reg signed [7:0] count;
+   	reg 		err;
+   	reg [3:0] 	prev_motor_drv;
+   
+   	always @(motor_drv or reset) begin
+		if (reset) begin
+	 		count = 0;
+	 		prev_motor_drv=4'b0000;
+      	end
+      	else begin
+	 		case (motor_drv)
+	   		4'b0000: begin
+	      		// $display("No Motor Drive: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);
+	   		end
+	   		4'b0001: begin
+	      		err = 0;
+	      		if (prev_motor_drv == 4'b0010)
+					count = count-1;
+	      		else if (prev_motor_drv == 4'b1000)
+					count = count+1;
+	      		else if (prev_motor_drv == 4'b0001)
+					;
+	      		// $display("No Motor Change: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);		
+	      		else if (prev_motor_drv == 4'b0000)
+					;
+	      		// $display("From Reset: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);		
+	      		else begin
+		 		// $display("ERR: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);
+		 			err = 1;
+	      		end
+	      		prev_motor_drv=4'b0001;
+	   		end
+	   		4'b0011: begin
+	      		if ((prev_motor_drv!==4'b0001) || (prev_motor_drv!==4'b0010)) begin
+		 		// $display("ERR: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);
+		 			err = 1;
+	      		end
+	   		end
+	   		4'b0010: begin
+	      		err = 0;
+	      		if (prev_motor_drv == 4'b0100)
+					count = count-1;
+	      		else if (prev_motor_drv == 4'b0001)
+					count = count+1;
+	      		else if (prev_motor_drv == 4'b0010)
+					;
+  	     		// $display("No Motor Change: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);		
+	     		else begin
+		 		// $display("ERR: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);
+		 			err = 1;
+	      		end
+	      		prev_motor_drv=4'b0010;	      		
+	   		end
+	   		4'b0110: begin
+      	      	if ((prev_motor_drv!==4'b0100) || (prev_motor_drv!==4'b0010)) begin
+		 		// $display("ERR: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);
+		 			err = 1;
+	      		end
+	   		end
+	   		4'b0100: begin
+	    		err = 0;
+	      		if (prev_motor_drv == 4'b1000)
+					count = count-1;
+	      		else if (prev_motor_drv == 4'b0010)
+					count = count+1;
+	      		else if (prev_motor_drv == 4'b0100)
+					;
+	      		// $display("No Motor Change: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);		
+	      		else begin
+		 		// $display("ERR: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);
+		 			err = 1;
+	      		end
+	      		prev_motor_drv=4'b0100; 			      		
+	   		end
+	   		4'b1100: begin
+      	  		if ((prev_motor_drv!==4'b1000) || (prev_motor_drv!==4'b0001)) begin
+		 	  	// $display("ERR: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);
+		 			err = 1;
+	      		end
+	   		end
+	   		4'b1000: begin
+	      		err = 0;
+	      		if (prev_motor_drv == 4'b0001)
+					count = count-1;
+	      		else if (prev_motor_drv == 4'b0100)
+					count = count+1;
+	      		else if (prev_motor_drv == 4'b1000)
+					;
+	      		// $display("No Change: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);		
+	      		else begin
+		 		// $display("ERR: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);
+		 			err = 1;
+	      		end
+	      		prev_motor_drv=4'b1000; 		
+	   		end
+	   		4'b1001: begin
+      	      	if ((prev_motor_drv!==4'b1000) || (prev_motor_drv!==4'b0001)) begin
+		 		// $display("ERR: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);
+		 			err = 1;
+	      		end
+	   		end
+	   		default: begin
+	      		// $display("ERR: drv=%b prev_drv=%b", motor_drv, prev_motor_drv);
+	      		err = 1;	      
+	   		end
+	 		endcase // case (motor_drv)
+	      	if (count > 99)
+	      		count = count - 200;
+			else if (count < -100)
+      			count = count + 200;	      			      			 		
+      	end // else: !if(reset)
+   	end // always @ (motor_drv or reset)
+endmodule // motor
+//
+// Clock Divider 
+// Produces a motor clock that is 1/16th the frequency of the system clock
+//    local parameter define_speed is set to 8.
+// 
+module motor_clk_div(
+       output reg clk_out,
+       input clk_in,
+       input reset
+    );
+    
+    localparam define_speed = 26'd8;
+    
+    reg [25:0] count;
+    
+    // Run on the positive edge of the clk and rst signals
+    always @ (posedge clk_in or reset)
+    begin
+        // When rst is high set count and new_clk to 0
+        if (reset == 1'b1)
+        begin 
+            count = 26'b0;   
+            clk_out = 1'b0;            
+        end
+        // When the count has reached the target constant
+        else if (count == define_speed)
+        begin
+            count = 26'b0;
+            clk_out = ~clk_out;
+        end
+        // increment the clock and keep the output clock
+        // the same when the target constant hasn't been reached        
+        else
+        begin
+            count = count + 1'b1;
+            clk_out = clk_out;
+        end
+    end
+endmodule
+//
+// Clock Generator
+// Generates the system clock for the Letter Dial Controller
+// **Do not modify**
+//
+module clkgen(clk);
+   output clk;
+
+   reg 	  clk;
+   
+   initial
+     clk = 1'b0;
+   always
+     #(`HCYC) clk=~clk;
+endmodule
+//
+// Motor Step to ASCII
+// Converts the -100 to 99 values of the motor step into what the ASCII values should be
+// This checks within a window for each character. 
+//
+module mstep2ascii(pos_char, motor_stp_cnt);
+	output 	[7:0] 		pos_char;
+	input signed [7:0] 	motor_stp_cnt;
+	
+	reg 	[7:0] 		pos_char;
+	
+	always @(*) begin
+    	if ((motor_stp_cnt > -3) && (motor_stp_cnt <= 3))
+    	    pos_char = 8'b0010_0000;
+    	else if ((motor_stp_cnt > 3) && (motor_stp_cnt <= 9))
+    		pos_char = 8'b0110_0001;
+    	else if ((motor_stp_cnt > 9) && (motor_stp_cnt <= 15))
+    		pos_char = 8'b0110_0010;
+    	else if ((motor_stp_cnt > 15) && (motor_stp_cnt <= 21))
+    		pos_char = 8'b0110_0011;
+    	else if ((motor_stp_cnt > 21) && (motor_stp_cnt <= 28))
+    		pos_char = 8'b0110_0100;
+    	else if ((motor_stp_cnt > 28) && (motor_stp_cnt <= 34))
+    		pos_char = 8'b0110_0101;
+    	else if ((motor_stp_cnt > 34) && (motor_stp_cnt <= 40))
+    		pos_char = 8'b0110_0110;
+    	else if ((motor_stp_cnt > 40) && (motor_stp_cnt <= 46))
+    		pos_char = 8'b0110_0111;
+    	else if ((motor_stp_cnt > 46) && (motor_stp_cnt <= 53))
+    		pos_char = 8'b0110_1000;
+    	else if ((motor_stp_cnt > 53) && (motor_stp_cnt <= 59))
+    		pos_char = 8'b0110_1001;
+    	else if ((motor_stp_cnt > 59) && (motor_stp_cnt <= 65))
+    		pos_char = 8'b0110_1010;
+    	else if ((motor_stp_cnt > 65) && (motor_stp_cnt <= 71))
+    		pos_char = 8'b0110_1011;
+    	else if ((motor_stp_cnt > 71) && (motor_stp_cnt <= 78))
+    		pos_char = 8'b0110_1100;
+    	else if ((motor_stp_cnt > 78) && (motor_stp_cnt <= 84))
+    		pos_char = 8'b0110_1101;
+    	else if ((motor_stp_cnt > 84) && (motor_stp_cnt <= 90))
+    		pos_char = 8'b0110_1110;
+    	else if ((motor_stp_cnt > 90) && (motor_stp_cnt <= 96))
+    		pos_char = 8'b0110_1111;
+    	else if (((motor_stp_cnt > 96) && (motor_stp_cnt <= 99)) || ((motor_stp_cnt > -100) && (motor_stp_cnt <= -97)))
+    		pos_char = 8'b0111_0000;
+    	else if ((motor_stp_cnt > -97) && (motor_stp_cnt <= -91))
+    		pos_char = 8'b0111_0001;
+    	else if ((motor_stp_cnt > -91) && (motor_stp_cnt <= -85))
+    		pos_char = 8'b0111_0010;
+    	else if ((motor_stp_cnt > -85) && (motor_stp_cnt <= -78))
+    		pos_char = 8'b0111_0011;
+    	else if ((motor_stp_cnt > -78) && (motor_stp_cnt <= -72))
+    		pos_char = 8'b0111_0100;
+    	else if ((motor_stp_cnt > -72) && (motor_stp_cnt <= -66))
+    		pos_char = 8'b0111_0101;
+    	else if ((motor_stp_cnt > -66) && (motor_stp_cnt <= -60))
+    		pos_char = 8'b0111_0110;
+    	else if ((motor_stp_cnt > -60) && (motor_stp_cnt <= -53))
+    		pos_char = 8'b0111_0111;
+    	else if ((motor_stp_cnt > -53) && (motor_stp_cnt <= -47))
+    		pos_char = 8'b0111_1000;
+    	else if ((motor_stp_cnt > -47) && (motor_stp_cnt <= -41))
+    		pos_char = 8'b0111_1001;
+    	else if ((motor_stp_cnt > -41) && (motor_stp_cnt <= -35))
+    		pos_char = 8'b0111_1010;
+    	else if ((motor_stp_cnt > -35) && (motor_stp_cnt <= -28))
+    		pos_char = 8'b0010_0000; //sp
+    	else if ((motor_stp_cnt > -28) && (motor_stp_cnt <= -22))
+    		pos_char = 8'b0010_0000; //sp
+    	else if ((motor_stp_cnt > -22) && (motor_stp_cnt <= -16))
+    		pos_char = 8'b0010_1100; //,
+    	else if ((motor_stp_cnt > -16) && (motor_stp_cnt <= -10))
+    		pos_char = 8'b0010_1110; //.
+    	else if ((motor_stp_cnt > -10) && (motor_stp_cnt <= -3))
+    		pos_char = 8'b0011_1111; //?
+ 		else begin
+			pos_char = 8'b0010_0000; //sp
+			$display("Error: step count: %d", motor_stp_cnt);
+    	end
+	end
+endmodule
+
+module dassign3_tb();
+   	//----------------------------------------------------------------
+   	//		Test Bench Signal Declarations
+   	//----------------------------------------------------------------
+   	integer i,j,outfile;
+	
+   	reg [4:0] pos_mem[0:255];
+   	reg [7:0] pos_char;
+   	reg [255:0] str;
+   	reg [4:0]   tb_pos;
+   
+   	//----------------------------------------------------------------
+   	//		Instantiate modules Module
+   	//----------------------------------------------------------------
+   	wire signed [7:0] 	motor_stp_cnt;
+	wire 		[7:0] 	dut_pos_char;
+
+   	clkgen 	clkgen_1(sys_clk);
+   	motor 	motor_1(motor_stp_cnt, step_err, motor_drv, sys_clk, reset);
+   	mstep2ascii	m2a(dut_pos_char, motor_stp_cnt);
+   	dassign3 letterdial(ready, motor_drv, req, ascii_in, sys_clk, reset);
+   
+   	//----------------------------------------------------------------
+   	//		Design Task Signal Declarations
+   	//----------------------------------------------------------------
+   	wire [3:0] 	motor_drv;
+   	wire       	done, sys_clk;
+   
+   	reg 	      	reset;
+   	reg 	[6:0]	ascii_in;
+   	reg			req;
+
+   	wire       step_err;
+      
+   	//----------------------------------------------------------------
+   	//		Test Stimulus
+   	//----------------------------------------------------------------
+   	initial begin
+    	outfile=$fopen("dassign3.txt");
+      	if(!outfile) begin
+	 		$display("FAIL WRITE FILE");
+	 		$finish;
+      	end
+      	$dumpfile("dassign3.vcd");
+      	$dumpvars(0,dassign3_tb);
+      	$readmemb("./ascii_pos.txt", pos_mem);
+      	str = `STR;
+	    #`CYC 	
+	    	reset = 0;
+	    	req = 0;
+	    #`CYC	reset = 1;
+	    #(2*`CYC) reset = 0;
+	    #`CYC	
+   		for(i=`STRLEN-1;i>=0;i=i-1) begin
+      		for(j=0;j<8;j=j+1)
+			pos_char[j] = str[8*i+j];
+     		ascii_in = pos_char[6:0];
+      		tb_pos = pos_mem[pos_char];
+      		wait (ready==1)
+      		#(1.5*`CYC) ;
+      			req = 1;
+      		$display("new ready: %b, req: %b, pos_char: %b, pos: %b", ready, req, pos_char, tb_pos);
+      		#`CYC ;
+      			req = 0;
+      		#`HCYC ;
+      		$display("ready: %b, req: %b, pos_char: %b, pos: %b", ready, req, pos_char, tb_pos);
+		end	
+		wait (ready == 1)
+  		#(10*`CYC) ;
+		$finish;			 
+   	end
+
+   	reg [7:0] tb_pos_char;
+   	
+   	always @(req) begin
+		if (req == 1) begin
+			tb_pos_char = pos_char;
+			$display("Req==1: Time: %d", $time);
+			#`HCYC ;
+			wait (ready == 1)
+			$display("Ready==1: Time: %d", $time);
+			if (dut_pos_char == tb_pos_char) begin
+				$display("Correct!\treq: %c\tresponse: %c\tmotor_step: %d\ttime:%d", 
+					tb_pos_char, dut_pos_char, motor_stp_cnt,$time);
+			end
+			else begin
+				$display("Incorrect!\treq: %c\tresponse: %c\tmotor_step: %d\ttime:%d",
+					tb_pos_char, dut_pos_char, motor_stp_cnt,$time);
+			end
+		end
+	end
+	
+	always @(dut_pos_char) begin
+		$display("Passing through %c to reach TestBench Char: %c @ %d ", dut_pos_char, tb_pos_char, $time);
+   	end
+
+endmodule // dassign3_tb
+
+

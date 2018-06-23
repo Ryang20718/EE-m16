@@ -1,0 +1,6 @@
+Notes:
+
+#1. You need to run the simulator using all three files in order for proper testbench operation.
+#2. Do not change ascii_pos.txt
+#3. A functional testbench is provided but you should feel free to do your own testing.
+
