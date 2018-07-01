@@ -1,4 +1,3 @@
 # EE-m16
 Past UCLA coursework 
-
-CK_Yang 2018
+CK Yang Spring 2018
